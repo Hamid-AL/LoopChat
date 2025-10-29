@@ -1,0 +1,55 @@
+<!-- chat/templates/chat/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Chat Rooms</title>
+</head>
+<body>
+    <h2>Create a new room</h2>
+    <form id="create-room-form" method="post" action="{% url 'chat:create_room' %}">
+        {% csrf_token %}
+        <input type="text" name="room_name" placeholder="Room Name" required>
+        <button type="submit">Create Room</button>
+    </form>
+
+    <h2>Existing Rooms</h2>
+    <ul>
+        {% for room in rooms %}
+        <li>
+            {{ room.name }}
+            <button onclick="joinRoom('{{ room.name }}')">Join</button>
+            <form method="post" action="{% url 'chat:delete_room' room.name %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit">Delete</button>
+            </form>
+        </li>
+        {% empty %}
+        <li>No rooms available</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Users</h2>
+    <ul>
+        {% for user in users %}
+        {% if user.username != request.user.username %}
+        <li>
+            {{ user.username }}
+                <button onclick="startPrivateChat('{{ user.username }}')">Start Chat</button>
+        </li>
+        {% endif %}
+        {% empty %}
+        <li>No users available</li>
+        {% endfor %}
+    </ul>
+
+    <script>
+        function joinRoom(roomName) {
+            window.location.href = '/chat/room/' + roomName + '/';
+        }
+        function startPrivateChat(username) {
+            window.location.href = '/chat/user/' + username + '/';
+        }
+    </script>
+</body>
+</html>

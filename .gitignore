@@ -1,7 +1,33 @@
-venv/
-node/
-media/
+# Python
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+*.pywz
+*.pyzw
+*.pyzwz
+*.pyzwzw
+*.pyzwzwz
+*.pyzwzwzw
+
+# .venv
+.venv/
+# Django
 db.sqlite3
-.env
-.DS_Store
+# Media
+media/
+# Static
+static/
+# Logs
+logs/
+# Error
+error.log
+# Debug
+debug.log
+
+# ignore what is inside migrations
+**/migrations/*initial.py
+
+

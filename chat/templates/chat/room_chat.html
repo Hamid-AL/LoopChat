@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Chat Room</title>
+    <style>
+        body {
+            display: flex;
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            background: #f3f4f6;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        #sidebar {
+            width: 260px;
+            background: #1f2937;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        #sidebar h3 {
+            margin-top: 0;
+            text-align: center;
+            color: #e5e7eb;
+        }
+
+        #sidebar form input {
+            width: 100%;
+            padding: 6px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            border: none;
+        }
+
+        #sidebar button {
+            background: #3b82f6;
+            border: none;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #sidebar button:hover {
+            background: #2563eb;
+        }
+
+        #sidebar ul {
+            list-style: none;
+            padding: 0;
+            flex-grow: 1;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        #sidebar li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #374151;
+            margin-bottom: 6px;
+            padding: 6px;
+            border-radius: 5px;
+        }
+
+        #sidebar li button {
+            padding: 3px 6px;
+            background: #ef4444;
+        }
+
+        /* Chat area */
+        #chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+
+        #chat-header {
+            background: #3b82f6;
+            color: white;
+            padding: 12px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        #messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message {
+            margin-bottom: 10px;
+            max-width: 70%;
+            padding: 10px;
+            border-radius: 10px;
+            word-wrap: break-word;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .message .username {
+            font-weight: bold;
+            font-size: 12px;
+            color: #4b5563;
+            margin-bottom: 3px;
+        }
+
+        .message .time {
+            font-size: 11px;
+            color: #9ca3af;
+            text-align: right;
+        }
+
+        .message.sent {
+            align-self: flex-end;
+            background: #dbeafe;
+        }
+
+        .message.received {
+            align-self: flex-start;
+            background: #f3f4f6;
+        }
+
+        /* Input area */
+        #input-area {
+            display: flex;
+            padding: 10px;
+            background: #f9fafb;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        #chat-message-input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 20px;
+            border: 1px solid #d1d5db;
+            outline: none;
+        }
+
+        #chat-message-submit {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 10px 20px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+
+        #chat-message-submit:hover {
+            background: #2563eb;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+        <h3>Rooms</h3>
+        <form id="create-room-form" method="post" action="{% url 'chat:create_room' %}">
+            {% csrf_token %}
+            <input type="text" name="room_name" placeholder="New room" required>
+            <button type="submit">Create</button>
+        </form>
+        <ul>
+            {% for room in rooms %}
+            <li>
+                <span>{{ room.name }}</span>
+                <div>
+                    <button style="background:#3b82f6" onclick="joinRoom('{{ room.name }}')">Join</button>
+                    {% if request.user == room.creator %}
+                    <form method="post" action="{% url 'chat:delete_room' room.name %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button>🗑</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </li>
+            {% empty %}
+            <li>No rooms available</li>
+            {% endfor %}
+        </ul>
+        <h3>Users</h3>
+        <ul>
+            {% for user in users %}
+            {% if user.username != request.user.username %}
+            <li>
+                {{ user.username }}
+                <button onclick="startPrivateChat('{{ user.username }}')">Start Chat</button>
+            </li>
+            {% endif %}
+            {% empty %}
+            <li>No users available</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Chat Area -->
+    <div id="chat-container">
+        <div id="chat-header">Room: {{ room_name }}</div>
+
+        <div id="messages-container"></div>
+
+        <div id="input-area">
+            <input id="chat-message-input" type="text" placeholder="Type your message...">
+            <button id="chat-message-submit">Send</button>
+        </div>
+    </div>
+
+    {{ room_name|json_script:"room-name" }}
+
+    <script>
+        const roomName = "{{ room_name }}";
+        const username = "{{ username }}";
+        const messagesContainer = document.getElementById('messages-container');
+    
+        // Load message history
+        const messageHistory = JSON.parse('{{ messages_json|safe }}');
+        messageHistory.forEach(msg => {
+            displayMessage(msg.username, msg.content, msg.username === username, msg.timestamp);
+        });
+    
+        // WebSocket setup
+        const chatSocket = new WebSocket(
+            'ws://' + window.location.host + '/ws/chat/room/' + roomName + '/'
+        );
+    
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            displayMessage(data.username, data.message, data.username === username);
+        };
+    
+        chatSocket.onclose = function(e) {
+            console.error('Chat socket closed unexpectedly');
+        };
+    
+        // Sending message
+        const input = document.getElementById('chat-message-input');
+        const sendButton = document.getElementById('chat-message-submit');
+    
+        input.focus();
+        input.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') sendButton.click();
+        });
+    
+        sendButton.onclick = function() {
+            const message = input.value.trim();
+            if (!message) return;
+            chatSocket.send(JSON.stringify({ 'message': message }));
+            input.value = '';
+            displayMessage(username, message, true);
+        };
+    
+        // Display message (align right if sender)
+        function displayMessage(user, text, isSender, time = new Date().toLocaleTimeString()) {
+            const msg = document.createElement('div');
+            msg.classList.add('message', isSender ? 'sent' : 'received');
+    
+            msg.innerHTML = `
+                <div class="username">${user}</div>
+                <div class="text">${text}</div>
+                <div class="time">${time}</div>
+            `;
+    
+            messagesContainer.appendChild(msg);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+    
+        function joinRoom(room) {
+            window.location.href = '/chat/room/' + room + '/';
+        }
+
+        function startPrivateChat(recipient) {
+            window.location.href = '/chat/user/' + recipient + '/';
+        }
+    </script>
+</body>
+</html>
