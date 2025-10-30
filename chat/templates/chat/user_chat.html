@@ -189,13 +189,14 @@
             {% endfor %}
         </ul>
 
-        <h2>Users</h2>
+        <h2>Friends</h2>
         <ul>
-            {% for user in users %}
-            {% if user.username != request.user.username %}
-            <li id="user-{{ user.username }}">
-                {{ user.username }}
-                <button onclick="startPrivateChat('{{ user.username }}')">Start Chat</button>
+            {% for friend in friends %}
+            {% if friend.user.username != request.user.username %}
+            <li id="user-{{ friend.user.username }}">
+                {{ friend.user.username }}
+                <button onclick="startPrivateChat('{{ friend.user.username }}')">Start Chat</button>
+                <span class="status-icon"> {% if friend.is_online %} 🟢 {% else %} ⚪ {% endif %}</span>
             </li>
             {% endif %}
             {% empty %}
@@ -271,6 +272,14 @@
             if (data.type === "new_message" && data.from !== recipientname) {
                 showNotification(data.from);
             }
+
+            if (data.type === "status_update") {
+                updateOnlineStatus(data.friend, data.is_online, data.online_count);
+            }
+
+            if (data.type === "initial_status") {
+                data.online_friends.forEach(friend => updateOnlineStatus(friend, true, data.online_count));
+            }
         };
 
         notificationSocket.onclose = function(e) {
@@ -311,6 +320,37 @@
                     badge.style.color = 'orange';
                     userItem.appendChild(badge);
                 }
+            }
+        }
+
+        // 🌐 Update friend online status
+        function updateOnlineStatus(friend, is_online, online_count) {
+            // Update online count display
+            let counter = document.getElementById("online-counter");
+            if (!counter) {
+                // Create it if not already present
+                const title = document.querySelector("#sidebar h2");
+                counter = document.createElement("span");
+                counter.id = "online-counter";
+                counter.style.fontSize = "14px";
+                counter.style.marginLeft = "8px";
+                counter.style.color = "#a5f3fc";
+                title.appendChild(counter);
+            }
+            counter.textContent = `(Online: ${online_count})`;
+
+            // Update the specific friend's indicator
+            const userItem = document.getElementById(`user-${friend}`);
+            if (userItem) {
+                // Remove any existing status emoji
+                userItem.querySelectorAll(".status-icon").forEach(el => el.remove());
+
+                // Add a new one
+                const icon = document.createElement("span");
+                icon.classList.add("status-icon");
+                icon.textContent = is_online ? " 🟢" : " ⚪";
+                icon.style.marginLeft = "5px";
+                userItem.appendChild(icon);
             }
         }
     </script>

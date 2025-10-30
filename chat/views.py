@@ -10,8 +10,8 @@ from django.utils.safestring import mark_safe
 from django.http import HttpResponse
 from django.contrib.auth.models import User
 from django.db.models import Q
-
-@login_required
+from users.models import FriendRequest, Profile
+@login_required(login_url='users:login')
 def index(request):
     rooms = ChatRoom.objects.all()  # show all existing rooms
     users= User.objects.all()
@@ -86,6 +86,20 @@ def private_chat(request, recipient_name):
         "messages_json": mark_safe(json.dumps(message_data)),
         "username": request.user.username,
         "recipient_name": recipient_name,
-        "users": User.objects.all(),
+        "friends": request.user.profile.friends.all(),
     }
     return render (request, "chat/user_chat.html", context)
+
+@login_required(login_url='users:login')
+def friends(request):
+    users = User.objects.exclude(id=request.user.id)
+    pending_received = FriendRequest.objects.filter(
+        to_user=request.user.profile,
+        status='pending'
+    ).select_related('from_user')
+
+    context = {
+        'users': users,
+        'pending_received': pending_received,
+    }
+    return render(request, 'chat/friends.html', context)

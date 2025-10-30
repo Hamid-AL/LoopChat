@@ -3,8 +3,9 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
 
+from django.shortcuts import get_object_or_404
+from .models import FriendRequest, Profile
 # -------- LOGIN --------
 def login_view(request):
     if request.method == "POST":
@@ -15,7 +16,7 @@ def login_view(request):
         if user is not None:
             login(request, user)
             messages.success(request, f"Welcome back, {user.username}!")
-            return redirect("chat:index")
+            return redirect("chat:friends") #redirect("chat:index")
         else:
             messages.error(request, "Invalid username or password.")
             return redirect("users:login")
@@ -55,6 +56,67 @@ def logout_view(request):
 def home_view(request):
     return render(request, "users/home.html")
 
+# -------- SEND FRIEND REQUEST --------
+@login_required(login_url='users:login')
+def send_friend_request(request, user_id):
+    if request.user.id == user_id:
+        messages.error(request, "You cannot send a friend request to yourself.")
+        return redirect(request.META.get('HTTP_REFERER', 'users:home'))
 
+    to_user = get_object_or_404(Profile, user__id=user_id)
+    from_profile = request.user.profile
+
+    # Check if a request already exists in either direction
+    existing_request = FriendRequest.objects.filter(
+        from_user=from_profile, to_user=to_user
+    ).exists() or FriendRequest.objects.filter(
+        from_user=to_user, to_user=from_profile
+    ).exists()
+
+    if existing_request:
+        messages.error(request, f"Friend request already sent to {to_user.user.username}.")
+    else:
+        FriendRequest.objects.create(from_user=from_profile, to_user=to_user)
+        messages.success(request, f"Friend request sent to {to_user.user.username} successfully.")
+
+    return redirect(request.META.get('HTTP_REFERER', 'users:home'))
+
+
+# -------- ACCEPT FRIEND REQUEST --------
+@login_required(login_url='users:login')
+def accept_friend_request(request, request_id):
+    f_request = get_object_or_404(
+        FriendRequest,
+        id=request_id,
+        to_user=request.user.profile
+    )
+
+    if f_request.status != 'pending':
+        messages.error(request, "This friend request has already been handled.")
+        return redirect(request.META.get('HTTP_REFERER', 'users:home'))
+
+    # Accept the request and create friendship
+    f_request.accept()
+    messages.success(request, f"You are now friends with {f_request.from_user.user.username}.")
+
+    return redirect(request.META.get('HTTP_REFERER', 'users:home'))
+
+@login_required
+def reject_friend_request(request, request_id):
+    friend_request = get_object_or_404(FriendRequest, id=request_id, to_user=request.user.profile)
+    friend_request.reject()
+    messages.info(request, 'Friend request rejected.')
+    return redirect('chat:friends')
+
+@login_required
+def remove_friend(request, user_id):
+    friend_user = get_object_or_404(User, id=user_id)
+    friend_profile = friend_user.profile
+    
+    # Remove from both sides (due to symmetrical relationship)
+    request.user.profile.friends.remove(friend_profile)
+    messages.success(request, f'Removed {friend_user.username} from friends.')
+    
+    return redirect('chat:friends')
 
 

@@ -2,8 +2,11 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.deletion import CASCADE
 
+
+
 # Direct Message
 class DirectMessage(models.Model):
+    #message_id = models.AutoField(primary_key=True)
     sender = models.ForeignKey(User, on_delete=CASCADE, related_name='sent_messages')
     recipient = models.ForeignKey(User, on_delete=CASCADE, related_name='received_messages')
     content = models.TextField()
@@ -12,6 +15,7 @@ class DirectMessage(models.Model):
 
 # Chat Room
 class ChatRoom(models.Model):
+    #room_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255, unique=True)
     creator = models.ForeignKey(User, on_delete=CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -22,6 +26,7 @@ class ChatRoom(models.Model):
 
 # Room Message
 class RoomMessage(models.Model):
+    #message_id = models.AutoField(primary_key=True)
     room = models.ForeignKey(ChatRoom, on_delete=CASCADE, related_name='messages')
     sender = models.ForeignKey(User, on_delete=CASCADE)
     content = models.TextField()
