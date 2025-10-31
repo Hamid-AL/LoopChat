@@ -26,7 +26,12 @@ SECRET_KEY = "django-insecure-c5bhckakt-+x0)08f*b+%sd*ynbseoca%pk!7d8m*&w$)56#t(
 DEBUG = True
 
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1', 
+    'unmodernized-uncoaxal-adah.ngrok-free.dev',
+    '.ngrok-free.dev',  # Allows any ngrok subdomain
+]
 
 
 # Application definition
@@ -136,3 +141,8 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://unmodernized-uncoaxal-adah.ngrok-free.dev',
+    'https://*.ngrok-free.dev',  # For any ngrok subdomain
+]
