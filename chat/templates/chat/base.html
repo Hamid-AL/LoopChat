@@ -1,0 +1,127 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'chat/css/sidebar.css' %}">
+    <style>
+        body {
+            display: flex;
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            background: #f3f4f6;
+            height: 100vh;
+        }   
+        
+        .smooth-alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4CAF50; /* default green */
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            opacity: 0;
+            animation: fadeInOut 4s ease forwards;
+            font-family: sans-serif;
+        }
+
+        /* Colors based on tags */
+        .smooth-alert.error { background: #e74c3c; }
+        .smooth-alert.warning { background: #f39c12; }
+        .smooth-alert.info { background: #3498db; }
+        .smooth-alert.success { background: #2ecc71; }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-10px); }
+            10%, 90% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-10px); }
+        }
+    </style>
+    {% block css %}
+    {% endblock %}
+ 
+</head>
+<body>
+
+    {% if messages %}
+    {% for message in messages %}
+        <p class="smooth-alert {{ message.tags }}">{{ message }}</p>
+    {% endfor %}
+    {% endif %}
+
+    <!-- Sidebar -->
+    {% include 'includes/sidebar.html' %}
+    {% block body_content %} 
+    {% endblock %}
+
+    <!-- Child template JS -->
+    {% block js %}
+    {% endblock %}
+    <script>
+
+        // ====== 2️⃣ Notifications WebSocket ======
+        // ones the user is online, the notifications will be sent to the user
+        const notificationSocket = new WebSocket(
+            'ws://' + window.location.host + '/ws/notifications/'
+        );
+
+        notificationSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            console.log("🔔 Notification received:", data);
+
+            if (data.type === "new_message" && data.from !== recipientname) {
+                showNotification(data.from);
+            }
+
+            if (data.type === "status_update") {
+                updateOnlineStatus(data.friend, data.is_online, data.online_count);
+            }
+
+            if (data.type === "initial_status") {
+                data.online_friends.forEach(friend => updateOnlineStatus(friend, true, data.online_count));
+            }
+        };
+
+        notificationSocket.onclose = function(e) {
+            console.error('Notification socket closed unexpectedly');
+        };
+        // 🌐 Update friend online status
+        function updateOnlineStatus(friend, is_online, online_count) {
+            // Update online count display
+            let counter = document.getElementById("online-counter");
+            if (!counter) {
+                // Create it if not already present
+                const title = document.querySelector("#sidebar #online-friends-header"); // localise the second h2 header
+                counter = document.createElement("span");
+                counter.id = "online-counter";
+                counter.style.fontSize = "14px";
+                counter.style.marginLeft = "8px";
+                counter.style.color = "#a5f3fc";
+                title.appendChild(counter);
+            }
+            counter.textContent = `(Online: ${online_count})`;
+
+            // Update the specific friend's indicator
+            const userItem = document.getElementById(`user-${friend}`);
+            if (userItem) {
+                // Remove any existing status emoji
+                userItem.querySelectorAll(".status-icon").forEach(el => el.remove());
+
+                // Add a new one
+                const icon = document.createElement("span");
+                icon.classList.add("status-icon");
+                icon.textContent = is_online ? " 🟢" : " ⚪";
+                icon.style.marginLeft = "5px";
+                userItem.appendChild(icon);
+            }
+        }
+    </script>
+
+
+</body>
+</html>

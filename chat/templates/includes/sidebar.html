@@ -1,0 +1,36 @@
+<div id="sidebar">
+    <h2>Rooms</h2>
+    <ul>
+        {% for room in rooms %}
+        <li>
+            <span>{{ room.name }}</span>
+            <div>
+                <button style="background:#3b82f6" onclick="joinRoom('{{ room.name }}')">Join</button>
+                {% if request.user == room.creator %}
+                <form method="post" action="{% url 'chat:delete_room' room.name %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button>🗑</button>
+                </form>
+                {% endif %}
+            </div>
+        </li>
+        {% empty %}
+        <li>No rooms available, create a new room to start chatting.</li>
+        {% endfor %}
+    </ul>
+
+    <h2 id="online-friends-header">Friends</h2>
+    <ul>
+        {% for friend in friends %}
+        {% if friend.user.username != request.user.username %}
+        <li id="user-{{ friend.user.username }}">
+            {{ friend.user.username }}
+            <button onclick="startPrivateChat('{{ friend.user.username }}')">Start Chat</button>
+            <span class="status-icon"> {% if friend.is_online %} 🟢 {% else %} ⚪ {% endif %}</span>
+        </li>
+        {% endif %}
+        {% empty %}
+        <li>You have no friends yet.</li>
+        {% endfor %}
+    </ul>
+    </div>

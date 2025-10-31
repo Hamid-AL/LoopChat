@@ -4,9 +4,19 @@ from .models import Profile, Friendship, FriendRequest
 
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'bio', 'created_at')
+    list_display = ('user', 'bio', 'friends_count', 'friends_list', 'created_at')
     search_fields = ('user__username', 'bio')
     list_filter = ('created_at',)
+    
+    def friends_count(self, obj):
+        return obj.friends.count()
+    friends_count.short_description = 'Friends Count'
+    
+    def friends_list(self, obj):
+        friends = obj.friends.all()[:5]  # Limit to 5 for display
+        return ", ".join([friend.user.username for friend in friends])
+    friends_list.short_description = 'Friends (first 5)'
+
 
 @admin.register(Friendship)
 class FriendshipAdmin(admin.ModelAdmin):

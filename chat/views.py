@@ -11,6 +11,7 @@ from django.http import HttpResponse
 from django.contrib.auth.models import User
 from django.db.models import Q
 from users.models import FriendRequest, Profile
+from django.contrib import messages
 @login_required(login_url='users:login')
 def index(request):
     rooms = ChatRoom.objects.all()  # show all existing rooms
@@ -55,7 +56,7 @@ def room_chat(request, room_name):
         "rooms": ChatRoom.objects.all(),
         "messages_json": mark_safe(json.dumps(message_data)),
         "username": request.user.username,
-        "users": User.objects.all()
+        "friends": request.user.profile.friends.all(),
     }
 
     return render(request, "chat/room_chat.html", context)
@@ -65,7 +66,13 @@ def room_chat(request, room_name):
 def private_chat(request, recipient_name):
     private_room_name=f"private_{request.user.username}_{recipient_name}"
     recipient = User.objects.get(username=recipient_name)
-    messages = DirectMessage.objects.filter(
+    friends= request.user.profile.friends.all()
+
+    if recipient.profile not in friends:
+        messages.error(request, f'You are not friends with {recipient_name}.')
+        return redirect('chat:friends')
+
+    chat_messages = DirectMessage.objects.filter(
         Q(sender=request.user, recipient=recipient) |
         Q(sender=recipient, recipient=request.user)
     ).order_by("timestamp")
@@ -76,7 +83,7 @@ def private_chat(request, recipient_name):
             "recipient": msg.recipient.username,
             "content": msg.content,
             "timestamp": msg.timestamp.strftime("%H:%M"),
-        } for msg in messages
+        } for msg in chat_messages
     ]
 
    
@@ -101,5 +108,7 @@ def friends(request):
     context = {
         'users': users,
         'pending_received': pending_received,
+        'rooms': ChatRoom.objects.all(),
+        'friends': request.user.profile.friends.all(),
     }
     return render(request, 'chat/friends.html', context)

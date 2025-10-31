@@ -9,7 +9,7 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('home/', views.home_view, name='home'),
 
-    # friends views
+    # friends views(like endpoints they do not return a template)
     path('friend-request/send/<int:user_id>/', views.send_friend_request, name='send_friend_request'),
     path('friend-request/accept/<int:request_id>/', views.accept_friend_request, name='accept_friend_request'),
     path('friend-request/reject/<int:request_id>/', views.reject_friend_request, name='reject_friend_request'),

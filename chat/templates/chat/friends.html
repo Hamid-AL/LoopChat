@@ -1,215 +1,152 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Friends Management</title>
-    <style>
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            font-family: Arial, sans-serif;
-        }
-        .section {
-            margin-bottom: 30px;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-        }
-        .user-list, .requests-list, .friends-list {
-            list-style: none;
-            padding: 0;
-        }
-        .user-item, .request-item, .friend-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            margin-bottom: 10px;
-            background-color: #f9f9f9;
-            border-radius: 4px;
-        }
-        .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 14px;
-        }
-        .btn-primary {
-            background-color: #007bff;
-            color: white;
-        }
-        .btn-success {
-            background-color: #28a745;
-            color: white;
-        }
-        .btn-danger {
-            background-color: #dc3545;
-            color: white;
-        }
-        .btn:disabled {
-            background-color: #6c757d;
-            cursor: not-allowed;
-        }
-        .user-info {
-            flex-grow: 1;
-        }
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-        }
-        .no-items {
-            text-align: center;
-            color: #6c757d;
-            font-style: italic;
-            padding: 20px;
-        }
-        h2 {
-            color: #333;
-            border-bottom: 2px solid #007bff;
-            padding-bottom: 10px;
-        }
-        .status-badge {
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        .status-pending {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Friends Management</h1>
-        
-        <!-- Current User's Friends Section -->
-        <div class="section">
-            <h2>My Friends</h2>
-            <ul class="friends-list">
-                {% if request.user.profile.friends.all %}
-                    {% for friend_profile in request.user.profile.friends.all %}
-                        <li class="friend-item">
-                            <div class="user-info">
-                                <strong>{{ friend_profile.user.username }}</strong>
-                                <br>
-                                <small>Email: {{ friend_profile.user.email }}</small>
-                            </div>
-                            <div class="action-buttons">
-                                <span class="status-badge">Friends ✓</span>
-                                <form method="post" action="{% url 'users:remove_friend' friend_profile.user.id %}" style="display: inline;">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-danger" onclick="return confirm('Remove {{ friend_profile.user.username }} from friends?')">
-                                        Remove
-                                    </button>
-                                </form>
-                            </div>
-                        </li>
-                    {% endfor %}
-                {% else %}
-                    <li class="no-items">You don't have any friends yet.</li>
-                {% endif %}
-            </ul>
-        </div>
+{% extends 'chat/base.html' %}
+{% load static %}
 
-        <!-- Pending Friend Requests Section -->
-        <div class="section">
-            <h2>Pending Friend Requests</h2>
-            <ul class="requests-list">
-                {% if pending_received %}
-                    {% for request in pending_received %}
-                        <li class="request-item">
-                            <div class="user-info">
-                                <strong>{{ request.from_user.user.username }}</strong>
-                                <br>
-                                <small>Sent: {{ request.created_at|date:"M d, Y H:i" }}</small>
-                                <span class="status-badge status-pending">Pending</span>
-                            </div>
-                            <div class="action-buttons">
-                                <form method="post" action="{% url 'users:accept_friend_request' request.id %}" style="display: inline;">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-success">Accept</button>
-                                </form>
-                                <form method="post" action="{% url 'users:reject_friend_request' request.id %}" style="display: inline;">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-danger">Reject</button>
-                                </form>
-                            </div>
-                        </li>
-                    {% endfor %}
-                {% else %}
-                    <li class="no-items">No pending friend requests.</li>
-                {% endif %}
-            </ul>
-        </div>
+<!-- CSS block -->
+{% block css %}
+<link rel="stylesheet" href="{% static 'chat/css/friends.css' %}">
+{% endblock %}
 
-        <!-- All Users Section -->
-        <div class="section">
-            <h2>All Users</h2>
-            <ul class="user-list">
-                {% if users %}
-                    {% for user in users %}
-                        <li class="user-item">
-                            <div class="user-info">
-                                <strong>{{ user.username }}</strong>
-                                <br>
-                                <small>Email: {{ user.email }}</small>
-                                {% if user.profile in request.user.profile.friends.all %}
-                                    <span class="status-badge" style="background-color: #d4edda; color: #155724;">Already Friends</span>
-                                {% endif %}
-                            </div>
-                            <div class="action-buttons">
-                                {% if user.profile not in request.user.profile.friends.all %}
-                                    <form method="post" action="{% url 'users:send_friend_request' user.id %}" style="display: inline;">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-primary">
-                                            Send Friend Request
-                                        </button>
-                                    </form>
-                                {% else %}
-                                    <button class="btn" disabled>Already Friends</button>
-                                {% endif %}
-                            </div>
-                        </li>
-                    {% endfor %}
-                {% else %}
-                    <li class="no-items">No other users found.</li>
-                {% endif %}
-            </ul>
-        </div>
-
-        <!-- Navigation -->
-        <div style="text-align: center; margin-top: 30px;">
-            <a href="{% url 'chat:index' %}" class="btn btn-primary">Back to Chat</a>
+<!-- html body block -->
+{% block body_content %}
+    <!-- Main Content -->
+    <div id="main-container">
+    <div id="header">Friends Management</div>
+    
+    <!-- Quick Actions -->
+    <div class="content-section">
+        <div class="quick-actions">
+            <button class="quick-action-btn" onclick="openCreateRoomModal()">
+                <span>+</span> Create New Room
+            </button>
+            {% with chat_url='chat:index' %}
+            <button class="quick-action-btn" onclick="window.location.href='{% url chat_url %}'">
+                <span>💬</span> Back to Chat
+            </button>
+            {% endwith %}
         </div>
     </div>
+    
+    <!-- Current User's Friends Section -->
+    <div class="content-section">
+        <h2>My Friends</h2>
+        <div class="user-cards">
+            {% if request.user.profile.friends.all %}
+                {% for friend_profile in request.user.profile.friends.all %}
+                    <div class="user-card">
+                        <div class="user-info">
+                            <div class="user-name">{{ friend_profile.user.username }}</div>
+                            <div class="user-email">{{ friend_profile.user.email }}</div>
+                            <span class="status-badge status-friends">Friends ✓</span>
+                        </div>
+                        <div class="action-buttons">
+                            <button class="btn btn-primary" onclick="startPrivateChat('{{ friend_profile.user.username }}')">
+                                Chat
+                            </button>
+                            <form method="post" action="{% url 'users:remove_friend' friend_profile.user.id %}" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger" onclick="return confirm('Remove {{ friend_profile.user.username }} from friends?')">
+                                    Remove
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-items">You don't have any friends yet.</div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Pending Friend Requests Section -->
+    <div class="content-section">
+        <h2>Pending Friend Requests</h2>
+        <div class="user-cards">
+            {% if pending_received %}
+                {% for request in pending_received %}
+                    <div class="user-card">
+                        <div class="user-info">
+                            <div class="user-name">{{ request.from_user.user.username }}</div>
+                            <div class="user-email">Sent: {{ request.created_at|date:"M d, Y H:i" }}</div>
+                            <span class="status-badge status-pending">Pending</span>
+                        </div>
+                        <div class="action-buttons">
+                            <form method="post" action="{% url 'users:accept_friend_request' request.id %}" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-success">Accept</button>
+                            </form>
+                            <form method="post" action="{% url 'users:reject_friend_request' request.id %}" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger">Reject</button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-items">No pending friend requests.</div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- All Users Section -->
+    <div class="content-section">
+        <h2>All Users</h2>
+        <div class="user-cards">
+            {% if users %}
+                {% for user in users %}
+                    <div class="user-card">
+                        <div class="user-info">
+                            <div class="user-name">{{ user.username }}</div>
+                            <div class="user-email">{{ user.email }}</div>
+                            {% if user.profile in request.user.profile.friends.all %}
+                                <span class="status-badge status-friends">Already Friends</span>
+                            {% endif %}
+                        </div>
+                        <div class="action-buttons">
+                            {% if user.profile not in request.user.profile.friends.all %}
+                                <form method="post" action="{% url 'users:send_friend_request' user.id %}" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-primary">
+                                        Send Friend Request
+                                    </button>
+                                </form>
+                            {% else %}
+                                <button class="btn btn-secondary" disabled>Already Friends</button>
+                            {% endif %}
+                            
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-items">No other users found.</div>
+            {% endif %}
+        </div>
+    </div>
+    </div>
+    
+    <!-- Room Creation Modal -->
+    <div id="createRoomModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">Create New Room</div>
+            <button class="close-btn" onclick="closeCreateRoomModal()">&times;</button>
+        </div>
+        <form id="modal-create-room-form" method="post" action="{% url 'chat:create_room' %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="room_name">Room Name</label>
+                <input type="text" id="room_name" name="room_name" placeholder="Enter room name" required>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeCreateRoomModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create Room</button>
+            </div>
+        </form>
+    </div>
+    </div>
+{% endblock %}
 
-    <!-- Simple JavaScript for better UX -->
-    <script>
-        // Add loading states to buttons
-        document.addEventListener('DOMContentLoaded', function() {
-            const forms = document.querySelectorAll('form');
-            forms.forEach(form => {
-                form.addEventListener('submit', function() {
-                    const button = this.querySelector('button[type="submit"]');
-                    if (button) {
-                        button.disabled = true;
-                        button.textContent = 'Processing...';
-                    }
-                });
-            });
-        });
 
-        // Auto-refresh the page after form submissions (optional)
-        setTimeout(function() {
-            // You can remove this if you don't want auto-refresh
-        }, 5000);
-    </script>
-</body>
-</html>
+<!-- JS block -->
+{% block js %}
+<script src="{% static 'chat/js/friends.js' %}"></script>
+{% endblock %}

@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 
 from django.shortcuts import get_object_or_404
 from .models import FriendRequest, Profile
+from chat.models import ChatRoom
 # -------- LOGIN --------
 def login_view(request):
     if request.method == "POST":
@@ -16,7 +17,11 @@ def login_view(request):
         if user is not None:
             login(request, user)
             messages.success(request, f"Welcome back, {user.username}!")
-            return redirect("chat:friends") #redirect("chat:index")
+            context = {
+                "rooms": ChatRoom.objects.all(),
+                "friends": request.user.profile.friends.all(),
+            }
+            return redirect("chat:friends", context) #redirect("chat:index")
         else:
             messages.error(request, "Invalid username or password.")
             return redirect("users:login")
@@ -112,7 +117,14 @@ def reject_friend_request(request, request_id):
 def remove_friend(request, user_id):
     friend_user = get_object_or_404(User, id=user_id)
     friend_profile = friend_user.profile
-    
+
+    # i need to delete friend request
+    # you need to delete from each side(but only one exists at a time)
+    try:
+        FriendRequest.objects.filter(from_user=request.user.profile, to_user=friend_profile).delete()
+        FriendRequest.objects.filter(from_user=friend_profile, to_user=request.user.profile).delete()
+    except FriendRequest.DoesNotExist:
+        pass
     # Remove from both sides (due to symmetrical relationship)
     request.user.profile.friends.remove(friend_profile)
     messages.success(request, f'Removed {friend_user.username} from friends.')
