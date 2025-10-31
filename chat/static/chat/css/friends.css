@@ -1,11 +1,14 @@
 
 /* Main Content Area */
+
 #main-container {
     flex: 1;
     display: flex;
     flex-direction: column;
     background: white;
     overflow-y: auto;
+    position: relative;
+    padding-top: 40px; /* Just header height (approximately 36px with padding) */
 }
 
 #header {
@@ -14,6 +17,12 @@
     padding: 12px;
     font-size: 18px;
     font-weight: bold;
+    position: fixed;
+    top: 56px; /* Below the navbar */
+    left: 260px; /* Start after sidebar */
+    right: 0;
+    z-index: 1029; /* Below navbar but above content */
+    margin-left: 0;
 }
 
 /* Content Sections */

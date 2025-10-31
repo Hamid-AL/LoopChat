@@ -22,6 +22,7 @@ chatSocket.onclose = function(e) {
 const input = document.getElementById('chat-message-input');
 const sendButton = document.getElementById('chat-message-submit');
 
+input.focus();
 input.addEventListener('keyup', (e) => {
     if (e.key === 'Enter') sendButton.click();
 });
@@ -55,18 +56,3 @@ function startPrivateChat(recipient) {
     window.location.href = '/chat/user/' + recipient + '/';
 }
 
-// 🔔 Show a new message alert next to a username
-function showNotification(sender) {
-    const userItem = document.getElementById(`user-${sender}`);
-    if (userItem) {
-        userItem.style.fontWeight = "bold";
-        userItem.style.color = "red";
-        if (!userItem.querySelector('.new-msg')) {
-            const badge = document.createElement('span');
-            badge.classList.add('new-msg');
-            badge.textContent = ' (new)';
-            badge.style.color = 'orange';
-            userItem.appendChild(badge);
-        }
-    }
-}

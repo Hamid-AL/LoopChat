@@ -7,7 +7,6 @@ urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('signup/', views.signup_view, name='signup'),
     path('logout/', views.logout_view, name='logout'),
-    path('home/', views.home_view, name='home'),
 
     # friends views(like endpoints they do not return a template)
     path('friend-request/send/<int:user_id>/', views.send_friend_request, name='send_friend_request'),

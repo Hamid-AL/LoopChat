@@ -17,11 +17,7 @@ def login_view(request):
         if user is not None:
             login(request, user)
             messages.success(request, f"Welcome back, {user.username}!")
-            context = {
-                "rooms": ChatRoom.objects.all(),
-                "friends": request.user.profile.friends.all(),
-            }
-            return redirect("chat:friends", context) #redirect("chat:index")
+            return redirect("chat:friends") #redirect("chat:index")
         else:
             messages.error(request, "Invalid username or password.")
             return redirect("users:login")
@@ -56,10 +52,6 @@ def logout_view(request):
     messages.success(request, "You have been logged out successfully.")
     return redirect("users:login")
 
-# -------- HOME (protected) --------
-@login_required(login_url='users:login')
-def home_view(request):
-    return render(request, "users/home.html")
 
 # -------- SEND FRIEND REQUEST --------
 @login_required(login_url='users:login')
@@ -71,16 +63,23 @@ def send_friend_request(request, user_id):
     to_user = get_object_or_404(Profile, user__id=user_id)
     from_profile = request.user.profile
 
-    # Check if a request already exists in either direction
-    existing_request = FriendRequest.objects.filter(
+    # Check if a request already exists in either direction and if it's accepted
+    existing_request_forward = FriendRequest.objects.filter(
         from_user=from_profile, to_user=to_user
-    ).exists() or FriendRequest.objects.filter(
+    ).first()
+    
+    existing_request_reverse = FriendRequest.objects.filter(
         from_user=to_user, to_user=from_profile
-    ).exists()
+    ).first()
+    
+    existing_request = existing_request_forward or existing_request_reverse
 
-    if existing_request:
-        messages.error(request, f"Friend request already sent to {to_user.user.username}.")
+    if existing_request and existing_request.status == 'accepted':
+        messages.error(request, f"You are already friends with {to_user.user.username}.")
     else:
+        # Delete existing pending/rejected request if it exists before creating a new one
+        if existing_request:
+            existing_request.delete()
         FriendRequest.objects.create(from_user=from_profile, to_user=to_user)
         messages.success(request, f"Friend request sent to {to_user.user.username} successfully.")
 
