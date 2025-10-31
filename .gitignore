@@ -18,8 +18,6 @@ __pycache__/
 db.sqlite3
 # Media
 media/
-# Static
-static/
 # Logs
 logs/
 # Error

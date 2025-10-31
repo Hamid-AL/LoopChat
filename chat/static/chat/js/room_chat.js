@@ -1,0 +1,57 @@
+messageHistory.forEach(msg => {
+    displayMessage(msg.username, msg.content, msg.username === username, msg.timestamp);
+});
+
+// WebSocket setup
+const chatSocket = new WebSocket(
+    'ws://' + window.location.host + '/ws/chat/room/' + roomName + '/'
+);
+
+chatSocket.onmessage = function(e) {
+    const data = JSON.parse(e.data);
+    displayMessage(data.username, data.message, data.username === username);
+};
+
+chatSocket.onclose = function(e) {
+    console.error('Chat socket closed unexpectedly');
+};
+
+// Sending message
+const input = document.getElementById('chat-message-input');
+const sendButton = document.getElementById('chat-message-submit');
+
+input.focus();
+input.addEventListener('keyup', (e) => {
+    if (e.key === 'Enter') sendButton.click();
+});
+
+sendButton.onclick = function() {
+    const message = input.value.trim();
+    if (!message) return;
+    chatSocket.send(JSON.stringify({ 'message': message }));
+    input.value = '';
+    displayMessage(username, message, true);
+};
+
+// Display message (align right if sender)
+function displayMessage(user, text, isSender, time = new Date().toLocaleTimeString()) {
+    const msg = document.createElement('div');
+    msg.classList.add('message', isSender ? 'sent' : 'received');
+
+    msg.innerHTML = `
+        <div class="username">${user}</div>
+        <div class="text">${text}</div>
+        <div class="time">${time}</div>
+    `;
+
+    messagesContainer.appendChild(msg);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function joinRoom(room) {
+    window.location.href = '/chat/room/' + room + '/';
+}
+
+function startPrivateChat(recipient) {
+    window.location.href = '/chat/user/' + recipient + '/';
+}
