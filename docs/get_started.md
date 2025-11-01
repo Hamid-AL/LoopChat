@@ -15,12 +15,12 @@ Before you begin, ensure you have the following installed on your system:
 If you're cloning from a repository:
 ```bash
 git clone <repository-url>
-cd djangoAuth
+cd LoopChat
 ```
 
 Or if you already have the project, navigate to the project directory:
 ```bash
-cd djangoAuth
+cd LoopChat
 ```
 
 ## Step 2: Create a Virtual Environment
